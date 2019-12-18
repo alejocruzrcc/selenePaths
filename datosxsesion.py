@@ -7,7 +7,7 @@ datos = pd.read_csv('engagement.csv', sep=';',  error_bad_lines=False)
 
 colestudiantes = datos['username'].values
 estudiantes = list(dict.fromkeys(colestudiantes))
-
+print(estudiantes)
 #Une columnas de fecha y hora y ordena cronologicamente
 
 colstiempo = ["date", "time"]
@@ -30,7 +30,6 @@ datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section']]
 
 #Asigna una sola variable por tipo de contenido:
 
-#datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['play_video','pause_video', 'stop_video'], 'Video')
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['problem_check','problem_graded'], 'Quiz')
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['edx.forum.response.created','edx.forum.thread.created','edx.forum.comment.created'], 'Forum')
 
@@ -76,17 +75,24 @@ for est in range(len(estudiantes)):
     data_collection[est].index = pd.RangeIndex(len(data_collection[est].index))
     numeroFilas = data_collection[est].count()
     
+    ## Agrega un signout al final de cada sesion
+    for l in range(1,numeroFilas.session):
+        if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
+            row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l]]
+            data_collection[est]= Insert_row(l, data_collection[est], row_signout)
+        numeroFilas = data_collection[est].count()
+    for l in range(1,numeroFilas.session):
+        if data_collection[est]['name'].iloc[l] == 'Signout':
+            data_collection[est]['session'].iloc[l] = data_collection[est]['session'].iloc[l-1]
+    
+    ## Agrega un Signin al inicio de cada sesion
     for l in range(1,numeroFilas.session):
         if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
             row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l]]
             data_collection[est]= Insert_row(l, data_collection[est], row_signin)
-            numeroFilas = data_collection[est].count()
-        if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
-            row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l]]
-            data_collection[est]= Insert_row(l, data_collection[est], row_signout)
-            numeroFilas = data_collection[est].count()
+        numeroFilas = data_collection[est].count()
 
-    row_signini = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0]]
+    #row_signini = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0]]
     #row_signfin = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session-1]]
     #data_collection[est]= Insert_row(0, data_collection[est], row_signini)
     #data_collection[est]= Insert_row(numeroFilas.session+1, data_collection[est], row_signfin)
@@ -105,18 +111,19 @@ for est in range(len(estudiantes)):
         if data_collection[est]['section'].iloc[l] != 'df13b37d70964faf88cfb44b7a36ac55':
             data_collection[est]['name'] = data_collection[est]['name'].replace([data_collection[est]['name'].iloc[l]], 'Other')
     
-    print(data_collection[est][['username', 'session']])
+    colsesion = data_collection[est]['session'].values
+    sesiones = list(dict.fromkeys(colsesion))
+    
     ##Se comienza a construir edges y nodes
     st1 = data_collection[est]['name'][0:numeroFilas.username-1]
     st2 = data_collection[est]['name'][1:numeroFilas.username]
     student = data_collection[est]['username'][0:numeroFilas.username-1]
-    #session = data_collection[est]['session'][0:numeroFilas.username-1]
-    list_of_triples = list(zip(st1, st2, student)) 
-    list_of_tuples = list(zip(st1, st2)) 
-    grafo[est] = pd.DataFrame(list_of_triples, columns = ['Source', 'Target', 'Student'])
-    
+    session = data_collection[est]['session'][0:numeroFilas.username-1]
+    datos_grafo = list(zip(st1, st2, student, session)) 
+    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'Student', 'Session'])
     datosA = datosA.append(grafo[est], ignore_index=True)
 
+print(datosA[datosA['Student']== 'e173'])
 ## Elimina datos
 datosEliminar=[]
 numeroDatosA = datosA.count()
@@ -139,7 +146,6 @@ datosA['Source'] = datosA['Source'].replace(['play_video','pause_video','stop_vi
 datosA['Target'] = datosA['Target'].replace(['play_video','pause_video','stop_video'], 'Video')
      
 datosA = datosA.drop(datosEliminar)
-
 datosA.index = pd.RangeIndex(len(datosA.index))
 
 ## asignacion de caracteres a nodos
@@ -149,9 +155,9 @@ datosA['Target'] = datosA['Target'].replace(['Signin','Video','Forum','Quiz', 'S
 def exportarCsvStudent(data, user):
     nombreAristas = 'edges_' + user
     datos = data[data['Student']== user]
-    datos = datos[['Source', 'Target']]
+    datos = datos[['Source', 'Target', 'Student', 'Session']]
     datos.to_csv(nombreAristas + '.csv', sep=';', index = False)
-    print (datos)
+    #print (datos)
 
 def exportarCsvAllStudent(data):
     nombreAristas = 'edges_all'
@@ -160,14 +166,14 @@ def exportarCsvAllStudent(data):
     print (datos)
 
 
-"""option = int(input("1: Para todos los estuiantes, 0: Para un estudiante "))
+option = int(input("1: Para todos los estuiantes, 0: Para un estudiante "))
 
 if option == 1:
     exportarCsvAllStudent(datosA)
 else:
     if option == 0:
         usuario = raw_input('Ingrese el usuario a analizar: ')
-        exportarCsvStudent(datosA, usuario)"""
+        exportarCsvStudent(datosA, usuario)
 
 """for key in data_collection.keys():
     print("\n" +"="*40)
