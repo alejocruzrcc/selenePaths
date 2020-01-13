@@ -1,13 +1,20 @@
 import pandas as pd
 import numpy as np
+import os, sys
+import shutil
 ##Lee el csv
 datos = pd.read_csv('engagement.csv', sep=';',  error_bad_lines=False)
+
+#Funcion para obtener unicos datos de una lista
+def unique(list1):
+    x = np.array(list1)
+    return np.unique(x)
 
 ##Identifica Estudiante
 
 colestudiantes = datos['username'].values
-estudiantes = list(dict.fromkeys(colestudiantes))
-print(estudiantes)
+#estudiantes = list(dict.fromkeys(colestudiantes))
+estudiantes = unique(colestudiantes)
 #Une columnas de fecha y hora y ordena cronologicamente
 
 colstiempo = ["date", "time"]
@@ -97,73 +104,94 @@ for est in range(len(estudiantes)):
     #data_collection[est]= Insert_row(0, data_collection[est], row_signini)
     #data_collection[est]= Insert_row(numeroFilas.session+1, data_collection[est], row_signfin)
     numeroFilas = data_collection[est].count()
-    
 
-## Se focaliza en un modulo 1d7d5a6b311445069d3cfc4dd0821b98
+
 for est in range(len(estudiantes)):
-    numeroFilas = data_collection[est].count()
-    for l in range(numeroFilas.username):
-        if data_collection[est]['section'].iloc[l] != 'df13b37d70964faf88cfb44b7a36ac55':
-            data_collection[est]['name'].iloc[l] += '_' + str(data_collection[est]['section'].iloc[l])
-    
-    ## alias para Otro en todos los contenidos + Otro
-    for l in range(numeroFilas.username):
-        if data_collection[est]['section'].iloc[l] != 'df13b37d70964faf88cfb44b7a36ac55':
-            data_collection[est]['name'] = data_collection[est]['name'].replace([data_collection[est]['name'].iloc[l]], 'Other')
-    
-    colsesion = data_collection[est]['session'].values
-    sesiones = list(dict.fromkeys(colsesion))
-    
     ##Se comienza a construir edges y nodes
-    st1 = data_collection[est]['name'][0:numeroFilas.username-1]
-    st2 = data_collection[est]['name'][1:numeroFilas.username]
+    source = data_collection[est]['name'][0:numeroFilas.username-1]
+    target = data_collection[est]['name'][1:numeroFilas.username]
+    section_source = data_collection[est]['section'][0:numeroFilas.username-1]
+    section_target = data_collection[est]['section'][1:numeroFilas.username]
     student = data_collection[est]['username'][0:numeroFilas.username-1]
     session = data_collection[est]['session'][0:numeroFilas.username-1]
-    datos_grafo = list(zip(st1, st2, student, session)) 
-    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'Student', 'Session'])
+    datos_grafo = list(zip(source, target, section_source, section_target, student, session)) 
+    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session'])
     datosA = datosA.append(grafo[est], ignore_index=True)
 
-print(datosA[datosA['Student']== 'e173'])
-## Elimina datos
-datosEliminar=[]
-numeroDatosA = datosA.count()
-lon = numeroDatosA.Source
-for u in range(lon):
-    if datosA['Source'].iloc[u] == 'Signout' and datosA['Target'].iloc[u] == 'Signin':
-        datosEliminar.append(u)
-    if datosA['Source'].iloc[u] == 'Other' and datosA['Target'].iloc[u] == 'Other':
-        datosEliminar.append(u)
-    if datosA['Source'].iloc[u] == 'play_video' and datosA['Target'].iloc[u] == 'pause_video':
-        datosEliminar.append(u)
-    if datosA['Source'].iloc[u] == 'pause_video' and datosA['Target'].iloc[u] == 'play_video':
-        datosEliminar.append(u)
-    if datosA['Source'].iloc[u] == 'play_video' and datosA['Target'].iloc[u] == 'play_video':
-        datosEliminar.append(u)
-    if datosA['Source'].iloc[u] == 'play_video' and datosA['Target'].iloc[u] == 'stop_video':
-        datosEliminar.append(u)
+
+
+#Funcion que exporta un csv nuevo
+def exportarCsv(data,nom,ruta):
+    nombreAristas = nom
+    datos = data
+    datos.to_csv(ruta + nombreAristas + '.csv', sep=';', index = False)
+    #print (datos)
+
+## Se generan dataframes tipo1 por seccion
+modulosConNan = unique(datosPrimerNivel['section'].values)
+modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
+carpetaModulos = 'modulos'
+### Crea carpeta de modulos
+if os.path.exists(carpetaModulos):
+        shutil.rmtree(carpetaModulos)
+        os.makedirs(carpetaModulos)
+else:
+        os.makedirs(carpetaModulos)
+
+columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session']
+datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
+
+for lm in range(len(modulos)):
+    datosAmodulos = datosA.copy()
+    numeroDatosA = datosAmodulos.count()
+    for lf in range(numeroDatosA.Student):
+        if datosAmodulos['SectionSource'].iloc[lf] != modulos[lm]:
+            datosAmodulos['Source'][lf] = 'Other'
+        if datosAmodulos['SectionTarget'].iloc[lf] != modulos[lm]:
+            datosAmodulos['Target'][lf] = 'Other'
+    ## Elimina datos
+    datosEliminar=[]
+    lon = numeroDatosA.Source
+    for u in range(lon):
+        if datosAmodulos['Source'].iloc[u] == 'Signout' and datosAmodulos['Target'].iloc[u] == 'Signin':
+            datosEliminar.append(u)
+        if datosAmodulos['Source'].iloc[u] == 'Other' and datosAmodulos['Target'].iloc[u] == 'Other':
+            datosEliminar.append(u)
+        if datosAmodulos['Source'].iloc[u] == 'play_video' and datosAmodulos['Target'].iloc[u] == 'pause_video':
+            datosEliminar.append(u)
+        if datosAmodulos['Source'].iloc[u] == 'pause_video' and datosAmodulos['Target'].iloc[u] == 'play_video':
+            datosEliminar.append(u)
+        if datosAmodulos['Source'].iloc[u] == 'play_video' and datosAmodulos['Target'].iloc[u] == 'play_video':
+            datosEliminar.append(u)
+        if datosAmodulos['Source'].iloc[u] == 'play_video' and datosAmodulos['Target'].iloc[u] == 'stop_video':
+            datosEliminar.append(u)
     
-datosA['Source'] = datosA['Source'].replace(['play_video','pause_video','stop_video'], 'Video')
-datosA['Target'] = datosA['Target'].replace(['play_video','pause_video','stop_video'], 'Video')
-     
-datosA = datosA.drop(datosEliminar)
-datosA.index = pd.RangeIndex(len(datosA.index))
+    datosAmodulos['Source'] = datosAmodulos['Source'].replace(['play_video','pause_video','stop_video'], 'Video')
+    datosAmodulos['Target'] = datosAmodulos['Target'].replace(['play_video','pause_video','stop_video'], 'Video')
+    
+    datosAmodulos = datosAmodulos.drop(datosEliminar)
+    datosAmodulos.index = pd.RangeIndex(len(datosAmodulos.index))
+
+    rutamodulos = 'modulos/'
+    exportarCsv(datosAmodulos, modulos[lm], rutamodulos)
 
 ## asignacion de caracteres a nodos
 datosA['Source'] = datosA['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 datosA['Target'] = datosA['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 
-def exportarCsvStudent(data, user):
+
+'''def exportarCsvStudent(data, user):
     nombreAristas = 'edges_' + user
     datos = data[data['Student']== user]
     datos = datos[['Source', 'Target', 'Student', 'Session']]
     datos.to_csv(nombreAristas + '.csv', sep=';', index = False)
     #print (datos)
 
-def exportarCsvAllStudent(data):
-    nombreAristas = 'edges_all'
-    datos = data[['Source', 'Target']]
+def exportarCsvAllStudent(data,nom):
+    nombreAristas = 'edges_all_'+nom
+    datos = data
     datos.to_csv(nombreAristas + '.csv', sep=';', index = False)
-    print (datos)
+    #print (datos)
 
 
 option = int(input("1: Para todos los estuiantes, 0: Para un estudiante "))
@@ -173,7 +201,7 @@ if option == 1:
 else:
     if option == 0:
         usuario = raw_input('Ingrese el usuario a analizar: ')
-        exportarCsvStudent(datosA, usuario)
+        exportarCsvStudent(datosA, usuario)'''
 
 """for key in data_collection.keys():
     print("\n" +"="*40)
