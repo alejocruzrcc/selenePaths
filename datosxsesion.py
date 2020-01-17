@@ -33,7 +33,7 @@ estudiantes = estudiantesn
 
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
-datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section']]
+datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime']]
 
 #Asigna una sola variable por tipo de contenido:
 
@@ -85,7 +85,7 @@ for est in range(len(estudiantes)):
     ## Agrega un signout al final de cada sesion
     for l in range(1,numeroFilas.session):
         if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
-            row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l]]
+            row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l], data_collection[est]['datetime'].iloc[l]]
             data_collection[est]= Insert_row(l, data_collection[est], row_signout)
         numeroFilas = data_collection[est].count()
     for l in range(1,numeroFilas.session):
@@ -95,9 +95,18 @@ for est in range(len(estudiantes)):
     ## Agrega un Signin al inicio de cada sesion
     for l in range(1,numeroFilas.session):
         if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
-            row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l]]
+            row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l], data_collection[est]['datetime'].iloc[l]]
             data_collection[est]= Insert_row(l, data_collection[est], row_signin)
         numeroFilas = data_collection[est].count()
+    
+    ## Agrega fila signin y signou al inicio y final de cada df del estudiante
+    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0]]
+    data_collection[est]= Insert_row(0, data_collection[est], row_signin)
+    
+
+    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session]]
+    numeroFilas = data_collection[est].count()
+    data_collection[est]= Insert_row(numeroFilas.session, data_collection[est], row_signout)
 
     #row_signini = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0]]
     #row_signfin = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session-1]]
@@ -114,18 +123,16 @@ for est in range(len(estudiantes)):
     section_target = data_collection[est]['section'][1:numeroFilas.username]
     student = data_collection[est]['username'][0:numeroFilas.username-1]
     session = data_collection[est]['session'][0:numeroFilas.username-1]
-    datos_grafo = list(zip(source, target, section_source, section_target, student, session)) 
-    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session'])
+    datetime = data_collection[est]['datetime'][0:numeroFilas.username-1]
+    datos_grafo = list(zip(source, target, section_source, section_target, student, session, datetime)) 
+    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
     datosA = datosA.append(grafo[est], ignore_index=True)
-
-
 
 #Funcion que exporta un csv nuevo
 def exportarCsv(data,nom,ruta):
     nombreAristas = nom
     datos = data
     datos.to_csv(ruta + nombreAristas + '.csv', sep=';', index = False)
-    #print (datos)
 
 ## Se generan dataframes tipo1 por seccion
 modulosConNan = unique(datosPrimerNivel['section'].values)
@@ -138,11 +145,13 @@ if os.path.exists(carpetaModulos):
 else:
         os.makedirs(carpetaModulos)
 
-columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session']
+columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
+columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week']
 datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
-
+datosCompleto = pd.DataFrame(index=[], columns=columnsCom)
+weeks = pd.DataFrame(index=[], columns = ['Week'])
 for lm in range(len(modulos)):
-    datosAmodulos = datosA.copy()
+    datosAmodulos = pd.concat([datosA.copy(), weeks], axis=1, )
     numeroDatosA = datosAmodulos.count()
     for lf in range(numeroDatosA.Student):
         if datosAmodulos['SectionSource'].iloc[lf] != modulos[lm]:
@@ -170,14 +179,17 @@ for lm in range(len(modulos)):
     datosAmodulos['Target'] = datosAmodulos['Target'].replace(['play_video','pause_video','stop_video'], 'Video')
     
     datosAmodulos = datosAmodulos.drop(datosEliminar)
+    datosAmodulos['Week']= modulos[lm]
     datosAmodulos.index = pd.RangeIndex(len(datosAmodulos.index))
+    
+    datosCompleto = datosCompleto.append(datosAmodulos, ignore_index=True)
+    ## asignacion de caracteres a nodos
+    datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+    datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 
-    rutamodulos = 'modulos/'
-    exportarCsv(datosAmodulos, modulos[lm], rutamodulos)
+rutamodulos = 'modulos/'
+exportarCsv(datosCompleto, 'completo', rutamodulos)
 
-## asignacion de caracteres a nodos
-datosA['Source'] = datosA['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
-datosA['Target'] = datosA['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 
 
 '''def exportarCsvStudent(data, user):
