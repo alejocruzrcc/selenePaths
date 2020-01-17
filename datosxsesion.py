@@ -153,9 +153,10 @@ for lm in range(len(modulos)):
     datosAmodulos['Week']= modulos[lm]
     print(datosAmodulos[['Source', 'Target', 'Session']])
 
-    ## Elimina datos
+    
     datosEliminar=[]
     for u in range(numeroDatosA.Source):
+    ## Elimina datos no relevantes en este nivel
         if datosAmodulos['Source'].iloc[u] == 'Signout' and datosAmodulos['Target'].iloc[u] == 'Signin':
             datosEliminar.append(u)
         if datosAmodulos['Source'].iloc[u] == 'Other' and datosAmodulos['Target'].iloc[u] == 'Other':
@@ -176,9 +177,18 @@ for lm in range(len(modulos)):
     datosAmodulos.index = pd.RangeIndex(len(datosAmodulos.index))
     
     datosCompleto = datosCompleto.append(datosAmodulos, ignore_index=True)
-    ## asignacion de caracteres a nodos
-    datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
-    datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+
+## Elimina datos no relevante en el modulo analizado
+'''numeroDatosC = datosCompleto.count()
+datosEliminar=[]
+for u in range(numeroDatosC.Student):
+    if datosCompleto['SectionSource'].iloc[u] != datosCompleto['Week'].iloc[u] and datosCompleto['SectionTarget'].iloc[u] != datosCompleto['Week'].iloc[u]:
+        datosEliminar.append(u)
+datosCompleto = datosCompleto.drop(datosEliminar)
+datosCompleto.index = pd.RangeIndex(len(datosCompleto.index))'''
+## asignacion de caracteres a nodos
+datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 
 ### Crea carpeta de modulos
 if os.path.exists(carpetaModulos):
