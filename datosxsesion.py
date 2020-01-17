@@ -108,10 +108,6 @@ for est in range(len(estudiantes)):
     numeroFilas = data_collection[est].count()
     data_collection[est]= Insert_row(numeroFilas.session, data_collection[est], row_signout)
 
-    #row_signini = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0]]
-    #row_signfin = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session-1]]
-    #data_collection[est]= Insert_row(0, data_collection[est], row_signini)
-    #data_collection[est]= Insert_row(numeroFilas.session+1, data_collection[est], row_signfin)
     numeroFilas = data_collection[est].count()
 
 
@@ -127,7 +123,6 @@ for est in range(len(estudiantes)):
     datos_grafo = list(zip(source, target, section_source, section_target, student, session, datetime)) 
     grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
     datosA = datosA.append(grafo[est], ignore_index=True)
-
 #Funcion que exporta un csv nuevo
 def exportarCsv(data,nom,ruta):
     nombreAristas = nom
@@ -138,30 +133,29 @@ def exportarCsv(data,nom,ruta):
 modulosConNan = unique(datosPrimerNivel['section'].values)
 modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
 carpetaModulos = 'modulos'
-### Crea carpeta de modulos
-if os.path.exists(carpetaModulos):
-        shutil.rmtree(carpetaModulos)
-        os.makedirs(carpetaModulos)
-else:
-        os.makedirs(carpetaModulos)
 
 columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
 columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week']
+
 datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
 datosCompleto = pd.DataFrame(index=[], columns=columnsCom)
+datosAmodulosUnidos = pd.DataFrame(index=[], columns=columnsCom)
 weeks = pd.DataFrame(index=[], columns = ['Week'])
+
 for lm in range(len(modulos)):
     datosAmodulos = pd.concat([datosA.copy(), weeks], axis=1, )
     numeroDatosA = datosAmodulos.count()
     for lf in range(numeroDatosA.Student):
-        if datosAmodulos['SectionSource'].iloc[lf] != modulos[lm]:
+        if datosAmodulos['SectionSource'].iloc[lf] != modulos[lm] and datosAmodulos['Source'][lf] != 'Signin' and datosAmodulos['Source'][lf] != 'Signout':
             datosAmodulos['Source'][lf] = 'Other'
-        if datosAmodulos['SectionTarget'].iloc[lf] != modulos[lm]:
+        if datosAmodulos['SectionTarget'].iloc[lf] != modulos[lm] and datosAmodulos['Target'][lf] != 'Signout' and datosAmodulos['Target'][lf] != 'Signin':
             datosAmodulos['Target'][lf] = 'Other'
+    datosAmodulos['Week']= modulos[lm]
+    print(datosAmodulos[['Source', 'Target', 'Session']])
+
     ## Elimina datos
     datosEliminar=[]
-    lon = numeroDatosA.Source
-    for u in range(lon):
+    for u in range(numeroDatosA.Source):
         if datosAmodulos['Source'].iloc[u] == 'Signout' and datosAmodulos['Target'].iloc[u] == 'Signin':
             datosEliminar.append(u)
         if datosAmodulos['Source'].iloc[u] == 'Other' and datosAmodulos['Target'].iloc[u] == 'Other':
@@ -179,13 +173,19 @@ for lm in range(len(modulos)):
     datosAmodulos['Target'] = datosAmodulos['Target'].replace(['play_video','pause_video','stop_video'], 'Video')
     
     datosAmodulos = datosAmodulos.drop(datosEliminar)
-    datosAmodulos['Week']= modulos[lm]
     datosAmodulos.index = pd.RangeIndex(len(datosAmodulos.index))
     
     datosCompleto = datosCompleto.append(datosAmodulos, ignore_index=True)
     ## asignacion de caracteres a nodos
     datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
     datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+
+### Crea carpeta de modulos
+if os.path.exists(carpetaModulos):
+        shutil.rmtree(carpetaModulos)
+        os.makedirs(carpetaModulos)
+else:
+        os.makedirs(carpetaModulos)
 
 rutamodulos = 'modulos/'
 exportarCsv(datosCompleto, 'completo', rutamodulos)
