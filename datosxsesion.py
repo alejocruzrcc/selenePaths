@@ -30,7 +30,6 @@ datosPrimerNivel = datos[~datos.name.isin(["nav_content","nav_content_next","nav
 colestudiantesn = datosPrimerNivel['username'].values
 estudiantesn = list(dict.fromkeys(colestudiantesn))
 estudiantes = estudiantesn
-
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
 datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime']]
@@ -81,23 +80,30 @@ for est in range(len(estudiantes)):
     data_collection[est]= nuevo
     data_collection[est].index = pd.RangeIndex(len(data_collection[est].index))
     numeroFilas = data_collection[est].count()
-    
+    filasainsertar = []
     ## Agrega un signout al final de cada sesion
     for l in range(1,numeroFilas.session):
         if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
-            row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l], data_collection[est]['datetime'].iloc[l]]
-            data_collection[est]= Insert_row(l, data_collection[est], row_signout)
-        numeroFilas = data_collection[est].count()
-    for l in range(1,numeroFilas.session):
-        if data_collection[est]['name'].iloc[l] == 'Signout':
-            data_collection[est]['session'].iloc[l] = data_collection[est]['session'].iloc[l-1]
-    
+            filasainsertar.append(l)
+    for f in range(0, len(filasainsertar)):
+        fi = filasainsertar[f]
+        fl = f+ fi
+        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1]]
+        data_collection[est] = Insert_row(fl, data_collection[est], row_signout)
+
+    numeroFilas = data_collection[est].count()
+    filasainsertar = []
     ## Agrega un Signin al inicio de cada sesion
     for l in range(1,numeroFilas.session):
         if data_collection[est]['session'].iloc[l] != data_collection[est]['session'].iloc[l-1]:
-            row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[l], data_collection[est]['section'].iloc[l], data_collection[est]['datetime'].iloc[l]]
-            data_collection[est]= Insert_row(l, data_collection[est], row_signin)
-        numeroFilas = data_collection[est].count()
+            filasainsertar.append(l)
+    for f in range(0, len(filasainsertar)):
+        fi = filasainsertar[f]
+        fl = f+ fi
+        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['datetime'].iloc[fl]]
+        data_collection[est] = Insert_row(fl, data_collection[est], row_signin)
+    
+    numeroFilas = data_collection[est].count()
     
     ## Agrega fila signin y signou al inicio y final de cada df del estudiante
     row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0]]
@@ -110,6 +116,7 @@ for est in range(len(estudiantes)):
 
     numeroFilas = data_collection[est].count()
 
+    #print(data_collection[est][['name','session', 'username']])
 
 for est in range(len(estudiantes)):
     ##Se comienza a construir edges y nodes
@@ -123,12 +130,15 @@ for est in range(len(estudiantes)):
     datos_grafo = list(zip(source, target, section_source, section_target, student, session, datetime)) 
     grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
     datosA = datosA.append(grafo[est], ignore_index=True)
+
+#print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
 #Funcion que exporta un csv nuevo
 def exportarCsv(data,nom,ruta):
     nombreAristas = nom
     datos = data
     datos.to_csv(ruta + nombreAristas + '.csv', sep=';', index = False)
 
+rutamodulos = 'modulos/'
 ## Se generan dataframes tipo1 por seccion
 modulosConNan = unique(datosPrimerNivel['section'].values)
 modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
@@ -150,10 +160,9 @@ for lm in range(len(modulos)):
             datosAmodulos['Source'][lf] = 'Other'
         if datosAmodulos['SectionTarget'].iloc[lf] != modulos[lm] and datosAmodulos['Target'][lf] != 'Signout' and datosAmodulos['Target'][lf] != 'Signin':
             datosAmodulos['Target'][lf] = 'Other'
+        #print(datosAmodulos[['Source', 'Target', 'Session']])
     datosAmodulos['Week']= modulos[lm]
-    print(datosAmodulos[['Source', 'Target', 'Session']])
 
-    
     datosEliminar=[]
     for u in range(numeroDatosA.Source):
     ## Elimina datos no relevantes en este nivel
@@ -197,8 +206,8 @@ if os.path.exists(carpetaModulos):
 else:
         os.makedirs(carpetaModulos)
 
-rutamodulos = 'modulos/'
 exportarCsv(datosCompleto, 'completo', rutamodulos)
+exportarCsv(datosA, 'ejemplo', rutamodulos)
 
 
 
