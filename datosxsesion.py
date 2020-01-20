@@ -145,15 +145,17 @@ modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
 carpetaModulos = 'modulos'
 
 columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
-columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week']
+columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
+#columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week']
 
 datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
 datosCompleto = pd.DataFrame(index=[], columns=columnsCom)
 datosAmodulosUnidos = pd.DataFrame(index=[], columns=columnsCom)
 weeks = pd.DataFrame(index=[], columns = ['Week'])
+steps = pd.DataFrame(index=[], columns = ['Step'])
 
 for lm in range(len(modulos)):
-    datosAmodulos = pd.concat([datosA.copy(), weeks], axis=1, )
+    datosAmodulos = pd.concat([datosA.copy(), weeks, steps], axis=1, )
     numeroDatosA = datosAmodulos.count()
     for lf in range(numeroDatosA.Student):
         if datosAmodulos['SectionSource'].iloc[lf] != modulos[lm] and datosAmodulos['Source'][lf] != 'Signin' and datosAmodulos['Source'][lf] != 'Signout':
@@ -185,16 +187,14 @@ for lm in range(len(modulos)):
     datosAmodulos = datosAmodulos.drop(datosEliminar)
     datosAmodulos.index = pd.RangeIndex(len(datosAmodulos.index))
     
-    datosCompleto = datosCompleto.append(datosAmodulos, ignore_index=True)
+    sesAmodulos = unique(datosAmodulos['Session'].values)
+    for sa in range(len(sesAmodulos)):
+        dfsession = datosAmodulos[datosAmodulos['Session'] == sesAmodulos[sa]]
+        ns = dfsession.count()
+        for l in range(0, ns.Session):
+            dfsession['Step'].iloc[l] = l+1 
+        datosCompleto = datosCompleto.append(dfsession, ignore_index=True)
 
-## Elimina datos no relevante en el modulo analizado
-'''numeroDatosC = datosCompleto.count()
-datosEliminar=[]
-for u in range(numeroDatosC.Student):
-    if datosCompleto['SectionSource'].iloc[u] != datosCompleto['Week'].iloc[u] and datosCompleto['SectionTarget'].iloc[u] != datosCompleto['Week'].iloc[u]:
-        datosEliminar.append(u)
-datosCompleto = datosCompleto.drop(datosEliminar)
-datosCompleto.index = pd.RangeIndex(len(datosCompleto.index))'''
 ## asignacion de caracteres a nodos
 datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
@@ -205,7 +205,7 @@ if os.path.exists(carpetaModulos):
         os.makedirs(carpetaModulos)
 else:
         os.makedirs(carpetaModulos)
-
+datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget', 'Student', 'Session', 'Datetime', 'Week']]
 exportarCsv(datosCompleto, 'completo', rutamodulos)
 exportarCsv(datosA, 'ejemplo', rutamodulos)
 
