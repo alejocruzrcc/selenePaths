@@ -49,7 +49,7 @@ estudiantes = estudiantesn
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
 print(estudiantes)
-datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime']]
+datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime', 'unit']]
 
 #Asigna una sola variable por tipo de contenido:
 
@@ -129,7 +129,7 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1]]
+        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1], data_collection[est]['unit'].iloc[fl-1]]
         data_collection[est] = Insert_row(fl, data_collection[est], row_signout)
 
     numeroFilas = data_collection[est].count()
@@ -141,17 +141,17 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['datetime'].iloc[fl]]
+        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['datetime'].iloc[fl], data_collection[est]['unit'].iloc[fl]]
         data_collection[est] = Insert_row(fl, data_collection[est], row_signin)
     
     numeroFilas = data_collection[est].count()
     
     ## Agrega fila signin y signou al inicio y final de cada df del estudiante
-    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0]]
+    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0],  data_collection[est]['unit'].iloc[0]]
     data_collection[est]= Insert_row(0, data_collection[est], row_signin)
     
 
-    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session]]
+    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session],  data_collection[est]['unit'].iloc[numeroFilas.session]]
     numeroFilas = data_collection[est].count()
     data_collection[est]= Insert_row(numeroFilas.session, data_collection[est], row_signout)
 
@@ -166,13 +166,14 @@ for est in range(len(estudiantes)):
     ##Se comienza a construir edges y nodes
     source = data_collection[est]['name'][0:numeroFilas.username-1]
     target = data_collection[est]['name'][1:numeroFilas.username]
+    unit = data_collection[est]['unit'][0:numeroFilas.username-1]
     section_source = data_collection[est]['section'][0:numeroFilas.username-1]
     section_target = data_collection[est]['section'][1:numeroFilas.username]
     student = data_collection[est]['username'][0:numeroFilas.username-1]
     session = data_collection[est]['session'][0:numeroFilas.username-1]
     datetime = data_collection[est]['datetime'][0:numeroFilas.username-1]
-    datos_grafo = list(zip(source, target, section_source, section_target, student, session, datetime)) 
-    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
+    datos_grafo = list(zip(source, target, unit, section_source, section_target, student, session, datetime)) 
+    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'Unit', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
     datosA = datosA.append(grafo[est], ignore_index=True)
 
 #print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
@@ -182,7 +183,7 @@ modulosConNan = unique(datosPrimerNivel['section'].values)
 modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
 
 columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
-columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
+columnsCom = ['Source', 'Target', 'Unit', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
 
 datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
 datosCompleto = pd.DataFrame(index=[], columns=columnsCom)
