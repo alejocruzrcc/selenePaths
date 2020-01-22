@@ -32,6 +32,7 @@ estudiantesn = list(dict.fromkeys(colestudiantesn))
 estudiantes = estudiantesn
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
+print(estudiantes)
 datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime']]
 
 #Asigna una sola variable por tipo de contenido:
@@ -72,6 +73,10 @@ def Insert_row(row_number, df, row_value):
     # return the dataframe 
     return df 
 
+dftemp = datosPrimerNivel[datosPrimerNivel['username'] == 'e120']
+dt = dftemp[dftemp['session'] == 'ccf96478cd58d9f2c650617acbe6a6af']
+#[['name','session', 'username']]
+print(dt[['name','datetime', 'session']])
 
 for est in range(len(estudiantes)):
     nuevo= pd.DataFrame(datosPrimerNivel[datosPrimerNivel['username'] == estudiantes[est]])
@@ -116,7 +121,10 @@ for est in range(len(estudiantes)):
 
     numeroFilas = data_collection[est].count()
 
-    #print(data_collection[est][['name','session', 'username']])
+dftemp = data_collection[13][['name','session', 'username']]
+#print(dftemp)
+#print(dftemp[dftemp['session' == 'ccf96478cd58d9f2c650617acbe6a6af']])
+#dfc =]
 
 for est in range(len(estudiantes)):
     ##Se comienza a construir edges y nodes
@@ -146,7 +154,6 @@ carpetaModulos = 'modulos'
 
 columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
 columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
-#columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week']
 
 datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
 datosCompleto = pd.DataFrame(index=[], columns=columnsCom)
@@ -191,6 +198,10 @@ for lm in range(len(modulos)):
     for sa in range(len(sesAmodulos)):
         dfsession = datosAmodulos[datosAmodulos['Session'] == sesAmodulos[sa]]
         ns = dfsession.count()
+        oth = ['Other']
+        ## No se toman encuenta grafos donde solo hay signin-other-signout
+        if ns.Session == 2 and dfsession.Target.isin(oth).any():
+            continue
         for l in range(0, ns.Session):
             dfsession['Step'].iloc[l] = l+1 
         datosCompleto = datosCompleto.append(dfsession, ignore_index=True)
