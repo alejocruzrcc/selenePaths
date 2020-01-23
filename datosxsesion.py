@@ -2,6 +2,22 @@ import pandas as pd
 import numpy as np
 import os, sys
 import shutil
+
+### Crea carpeta de modulos
+carpetaModulos = 'modulos'
+if os.path.exists(carpetaModulos):
+        shutil.rmtree(carpetaModulos)
+        os.makedirs(carpetaModulos)
+else:
+        os.makedirs(carpetaModulos)
+
+#Funcion que exporta un csv nuevo
+def exportarCsv(data,nom,ruta):
+    nombreAristas = nom
+    datos = data
+    datos.to_csv(ruta + nombreAristas + '.csv', sep=';', index = False)
+rutamodulos = 'modulos/'
+
 ##Lee el csv
 datos = pd.read_csv('engagement.csv', sep=';',  error_bad_lines=False)
 
@@ -73,10 +89,29 @@ def Insert_row(row_number, df, row_value):
     # return the dataframe 
     return df 
 
-dftemp = datosPrimerNivel[datosPrimerNivel['username'] == 'e120']
-dt = dftemp[dftemp['session'] == 'ccf96478cd58d9f2c650617acbe6a6af']
+#####################################
+#dt = dftemp[dftemp['session'] == 'ccf96478cd58d9f2c650617acbe6a6af']
 #[['name','session', 'username']]
-print(dt[['name','datetime', 'session']])
+#print(dt[['name','datetime', 'session']])
+df_ss = pd.DataFrame()
+for est in range(len(estudiantes)):
+    nuevo= pd.DataFrame(datosPrimerNivel[datosPrimerNivel['username'] == estudiantes[est]])
+    if nuevo.empty:
+        continue
+    data_collection[est]= nuevo
+    data_collection[est].index = pd.RangeIndex(len(data_collection[est].index))
+    numeroFilas = data_collection[est].count()
+    ## SESIONES SEPARADAS CASOS ESPECIALES
+    ses = data_collection[est]['session'].unique()
+    for s in ses:
+        df_estud = data_collection[est]
+        nuevodf= df_estud[df_estud['session'] == s]
+        df_ss = df_ss.append(nuevodf, ignore_index = True)
+    
+
+datosPrimerNivel = df_ss
+dftemp = datosPrimerNivel[datosPrimerNivel['username'] == 'e16']
+exportarCsv(dftemp, 'ejeme16', rutamodulos)
 
 for est in range(len(estudiantes)):
     nuevo= pd.DataFrame(datosPrimerNivel[datosPrimerNivel['username'] == estudiantes[est]])
@@ -85,6 +120,7 @@ for est in range(len(estudiantes)):
     data_collection[est]= nuevo
     data_collection[est].index = pd.RangeIndex(len(data_collection[est].index))
     numeroFilas = data_collection[est].count()
+ 
     filasainsertar = []
     ## Agrega un signout al final de cada sesion
     for l in range(1,numeroFilas.session):
@@ -121,10 +157,10 @@ for est in range(len(estudiantes)):
 
     numeroFilas = data_collection[est].count()
 
-dftemp = data_collection[13][['name','session', 'username']]
-#print(dftemp)
+dftemp = data_collection[5]
+print(dftemp)
+exportarCsv(dftemp, 'ejemsiso', rutamodulos)
 #print(dftemp[dftemp['session' == 'ccf96478cd58d9f2c650617acbe6a6af']])
-#dfc =]
 
 for est in range(len(estudiantes)):
     ##Se comienza a construir edges y nodes
@@ -140,17 +176,10 @@ for est in range(len(estudiantes)):
     datosA = datosA.append(grafo[est], ignore_index=True)
 
 #print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
-#Funcion que exporta un csv nuevo
-def exportarCsv(data,nom,ruta):
-    nombreAristas = nom
-    datos = data
-    datos.to_csv(ruta + nombreAristas + '.csv', sep=';', index = False)
 
-rutamodulos = 'modulos/'
 ## Se generan dataframes tipo1 por seccion
 modulosConNan = unique(datosPrimerNivel['section'].values)
 modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
-carpetaModulos = 'modulos'
 
 columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
 columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
@@ -210,15 +239,8 @@ for lm in range(len(modulos)):
 datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 
-### Crea carpeta de modulos
-if os.path.exists(carpetaModulos):
-        shutil.rmtree(carpetaModulos)
-        os.makedirs(carpetaModulos)
-else:
-        os.makedirs(carpetaModulos)
 datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget', 'Student', 'Session', 'Datetime', 'Week']]
 exportarCsv(datosCompleto, 'completo', rutamodulos)
-exportarCsv(datosA, 'ejemplo', rutamodulos)
 
 
 
