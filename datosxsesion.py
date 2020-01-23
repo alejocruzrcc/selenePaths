@@ -48,7 +48,7 @@ estudiantesn = list(dict.fromkeys(colestudiantesn))
 estudiantes = estudiantesn
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
-print(estudiantes)
+#print(estudiantes)
 datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime', 'unit']]
 
 
@@ -112,8 +112,8 @@ for est in range(len(estudiantes)):
     
 
 datosPrimerNivel = df_ss
-dftemp = datosPrimerNivel[datosPrimerNivel['username'] == 'e16']
-exportarCsv(dftemp, 'ejeme16', rutamodulos)
+#dftemp = datosPrimerNivel[datosPrimerNivel['username'] == 'e16']
+#exportarCsv(dftemp, 'ejeme16', rutamodulos)
 
 for est in range(len(estudiantes)):
     nuevo= pd.DataFrame(datosPrimerNivel[datosPrimerNivel['username'] == estudiantes[est]])
@@ -159,11 +159,12 @@ for est in range(len(estudiantes)):
     numeroFilas = data_collection[est].count()
 
 dftemp = data_collection[5]
-print(dftemp)
-exportarCsv(dftemp, 'ejemsiso', rutamodulos)
+#print(dftemp)
+#exportarCsv(dftemp, 'ejemsiso', rutamodulos)
 #print(dftemp[dftemp['session' == 'ccf96478cd58d9f2c650617acbe6a6af']])
 
 for est in range(len(estudiantes)):
+    numeroFilas = data_collection[est].count()
     ##Se comienza a construir edges y nodes
     source = data_collection[est]['name'][0:numeroFilas.username-1]
     target = data_collection[est]['name'][1:numeroFilas.username]
@@ -179,6 +180,7 @@ for est in range(len(estudiantes)):
     datosA = datosA.append(grafo[est], ignore_index=True)
 
 #print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
+#exportarCsv(datosA, 'antesdegrafo', rutamodulos)
 
 ## Se generan dataframes tipo1 por seccion
 modulosConNan = unique(datosPrimerNivel['section'].values)
@@ -241,10 +243,10 @@ for lm in range(len(modulos)):
 '''datosCompleto['Source'] = datosCompleto['Source'].astype(str)+""+datosCompleto['UnitSource']
 datosCompleto['Target'] = datosCompleto['Target'].astype(str)+""+datosCompleto['UnitTarget']'''
 ## asignacion de caracteres a nodos
-#datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
-#datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 
-datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget','UnitSource', 'UnitTarget', 'Student', 'Session', 'Datetime', 'Week']]
+datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget', 'Student', 'Session', 'Datetime', 'Week']]
 
 exportarCsv(datosCompleto, 'completo', rutamodulos)
 
