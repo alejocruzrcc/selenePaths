@@ -42,7 +42,7 @@ datos = datos.sort_values('datetime')
 
 ## filtrar datos sin nav_content, nav_content_next y nav_content_prev, ademas actualiza estudiantes
 
-datosPrimerNivel = datos[~datos.name.isin(["nav_content","nav_content_next","nav_content_prev","nav_content_click","nav_content_tab","Signin",""])]
+datosPrimerNivel = datos[~datos.name.isin(["pause_video","stop_video", "nav_content","nav_content_next","nav_content_prev","nav_content_click","nav_content_tab","Signin",""])]
 colestudiantesn = datosPrimerNivel['username'].values
 estudiantesn = list(dict.fromkeys(colestudiantesn))
 estudiantes = estudiantesn
@@ -54,9 +54,13 @@ datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', '
 
 #Asigna una sola variable por tipo de contenido:
 
+datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['play_video'], 'Video')
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['problem_check','problem_graded'], 'Quiz')
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['edx.forum.response.created','edx.forum.thread.created','edx.forum.comment.created'], 'Forum')
-datosPrimerNivel['unit'] = datosPrimerNivel['unit'].replace(['Null'], '')
+## Temporalmente para Quiz
+datosPrimerNivel['unit'].fillna('1', inplace=True)
+datosPrimerNivel['unit'] = datosPrimerNivel['unit'].replace(['Null', 'NaN'], '1')
+## Temporalmente NA para la unidad de los foros
 
 ## Crea un array de dataframes, un dataframe por estudiante
 data_collection = {}
@@ -92,9 +96,9 @@ def Insert_row(row_number, df, row_value):
     return df 
 
 #####################################
-#dt = dftemp[dftemp['session'] == 'ccf96478cd58d9f2c650617acbe6a6af']
+dt = datosPrimerNivel
 #[['name','session', 'username']]
-#print(dt[['name','datetime', 'session']])
+print(dt[['name','unit', 'session']])
 df_ss = pd.DataFrame()
 for est in range(len(estudiantes)):
     nuevo= pd.DataFrame(datosPrimerNivel[datosPrimerNivel['username'] == estudiantes[est]])
@@ -131,7 +135,7 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1], '']
+        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1], 'NA']
         data_collection[est] = Insert_row(fl, data_collection[est], row_signout)
 
     numeroFilas = data_collection[est].count()
@@ -143,20 +147,23 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['datetime'].iloc[fl], '']
+        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['datetime'].iloc[fl], 'NA']
         data_collection[est] = Insert_row(fl, data_collection[est], row_signin)
     
     numeroFilas = data_collection[est].count()
     
     ## Agrega fila signin y signou al inicio y final de cada df del estudiante
-    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0], '']
+    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0], 'NA']
     data_collection[est]= Insert_row(0, data_collection[est], row_signin)
     
-    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session], '']
+    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session], 'NA']
     numeroFilas = data_collection[est].count()
     data_collection[est]= Insert_row(numeroFilas.session, data_collection[est], row_signout)
 
     numeroFilas = data_collection[est].count()
+
+for est in range(len(estudiantes)):
+    data_collection[est]['name'] = data_collection[est]['name'].astype(str)+""+data_collection[est]['unit']
 
 dftemp = data_collection[5]
 #print(dftemp)
@@ -168,26 +175,28 @@ for est in range(len(estudiantes)):
     ##Se comienza a construir edges y nodes
     source = data_collection[est]['name'][0:numeroFilas.username-1]
     target = data_collection[est]['name'][1:numeroFilas.username]
-    unit_source = data_collection[est]['unit'][0:numeroFilas.username-1]
-    unit_target = data_collection[est]['unit'][1:numeroFilas.username]
     section_source = data_collection[est]['section'][0:numeroFilas.username-1]
     section_target = data_collection[est]['section'][1:numeroFilas.username]
     student = data_collection[est]['username'][0:numeroFilas.username-1]
     session = data_collection[est]['session'][0:numeroFilas.username-1]
     datetime = data_collection[est]['datetime'][0:numeroFilas.username-1]
-    datos_grafo = list(zip(source, target, unit_source, unit_target, section_source, section_target, student, session, datetime)) 
-    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'UnitSource', 'UnitTarget', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
+    datos_grafo = list(zip(source, target, section_source, section_target, student, session, datetime)) 
+    grafo[est] = pd.DataFrame(datos_grafo, columns = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime'])
     datosA = datosA.append(grafo[est], ignore_index=True)
 
 #print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
-#exportarCsv(datosA, 'antesdegrafo', rutamodulos)
+datosA['Source'] = datosA['Source'].replace(['SigninNA'], 'Signin')
+datosA['Source'] = datosA['Source'].replace(['SignoutNA'], 'Signout')
+datosA['Target'] = datosA['Target'].replace(['SigninNA'], 'Signin')
+datosA['Target'] = datosA['Target'].replace(['SignoutNA'], 'Signout')
+exportarCsv(datosA, 'antesdegrafo', rutamodulos)
 
 ## Se generan dataframes tipo1 por seccion
 modulosConNan = unique(datosPrimerNivel['section'].values)
 modulos = np.array([x for x in modulosConNan if str(x) != 'nan'])
 
 columnsMod = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime']
-columnsCom = ['Source', 'Target', 'UnitSource', 'UnitTarget', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
+columnsCom = ['Source', 'Target', 'SectionSource', 'SectionTarget','Student', 'Session', 'Datetime', 'Week', 'Step']
 
 datosAmodulos = pd.DataFrame(index=[], columns=columnsMod)
 datosCompleto = pd.DataFrame(index=[], columns=columnsCom)
@@ -209,9 +218,11 @@ for lm in range(len(modulos)):
     datosEliminar=[]
     for u in range(numeroDatosA.Source):
     ## Elimina datos no relevantes en este nivel
+        if datosAmodulos['Source'].iloc[u] == datosAmodulos['Target'].iloc[u]:
+            datosEliminar.append(u)
         if datosAmodulos['Source'].iloc[u] == 'Signout' and datosAmodulos['Target'].iloc[u] == 'Signin':
             datosEliminar.append(u)
-        if datosAmodulos['Source'].iloc[u] == 'Other' and datosAmodulos['Target'].iloc[u] == 'Other':
+        '''if datosAmodulos['Source'].iloc[u] == 'Other' and datosAmodulos['Target'].iloc[u] == 'Other':
             datosEliminar.append(u)
         if datosAmodulos['Source'].iloc[u] == 'play_video' and datosAmodulos['Target'].iloc[u] == 'pause_video':
             datosEliminar.append(u)
@@ -220,10 +231,10 @@ for lm in range(len(modulos)):
         if datosAmodulos['Source'].iloc[u] == 'play_video' and datosAmodulos['Target'].iloc[u] == 'play_video':
             datosEliminar.append(u)
         if datosAmodulos['Source'].iloc[u] == 'play_video' and datosAmodulos['Target'].iloc[u] == 'stop_video':
-            datosEliminar.append(u)
+            datosEliminar.append(u)'''
     
-    datosAmodulos['Source'] = datosAmodulos['Source'].replace(['play_video','pause_video','stop_video'], 'Video')
-    datosAmodulos['Target'] = datosAmodulos['Target'].replace(['play_video','pause_video','stop_video'], 'Video')
+    '''datosAmodulos['Source'] = datosAmodulos['Source'].replace(['play_video','pause_video','stop_video'], 'Video')
+    datosAmodulos['Target'] = datosAmodulos['Target'].replace(['play_video','pause_video','stop_video'], 'Video')'''
     
     datosAmodulos = datosAmodulos.drop(datosEliminar)
     datosAmodulos.index = pd.RangeIndex(len(datosAmodulos.index))
@@ -240,11 +251,14 @@ for lm in range(len(modulos)):
             dfsession['Step'].iloc[l] = l+1 
         datosCompleto = datosCompleto.append(dfsession, ignore_index=True)
 
-'''datosCompleto['Source'] = datosCompleto['Source'].astype(str)+""+datosCompleto['UnitSource']
-datosCompleto['Target'] = datosCompleto['Target'].astype(str)+""+datosCompleto['UnitTarget']'''
 ## asignacion de caracteres a nodos
-datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
-datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+'''datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
+datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])'''
+
+datosNodos = pd.DataFrame(index =[], columns = ['id', 'label'])
+datosNodos['id'] = np.unique(datosCompleto[['Source', 'Target']].values)
+datosNodos['label'] = np.unique(datosCompleto[['Source', 'Target']].values)
+exportarCsv(datosNodos, 'nodos', rutamodulos)
 
 datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget', 'Student', 'Session', 'Datetime', 'Week']]
 
