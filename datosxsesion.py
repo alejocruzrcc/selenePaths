@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os, sys
 import shutil
-
+import xml.etree.cElementTree as et
 ### Crea carpeta de modulos
 carpetaModulos = 'modulos'
 if os.path.exists(carpetaModulos):
@@ -11,6 +11,11 @@ if os.path.exists(carpetaModulos):
 else:
         os.makedirs(carpetaModulos)
 
+#Funcion para obtener unicos datos de una lista
+def unique(list1):
+    x = np.array(list1)
+    return np.unique(x)
+
 #Funcion que exporta un csv nuevo
 def exportarCsv(data,nom,ruta):
     nombreAristas = nom
@@ -18,13 +23,39 @@ def exportarCsv(data,nom,ruta):
     datos.to_csv(ruta + nombreAristas + '.csv', sep=';', index = False)
 rutamodulos = 'modulos/'
 
+# Creando diccionarios de secciones:
+##Importamos datos del xml del curso 
+parsedXML = et.parse( "course/course/2019-II.xml")
+dfcols = ['section']
+sec_xml = pd.DataFrame(columns=dfcols)
+for node in parsedXML.getroot():
+    name = node.attrib.get('url_name')
+    if pd.isna(name):
+        continue
+    else:
+        sec_xml = sec_xml.append(pd.Series([name], index=dfcols), ignore_index = True)
+##Creamos el diccionario de secciones
+dicsec = dict(zip(sec_xml['section'], range(1, len(sec_xml['section'])+1)))
+
+# Creando diccionario de Subsecciones:
+##Importamos datos del xml del curso 
+dfcols = ['subsection']
+subsec_xml = pd.DataFrame(columns=dfcols)
+for sec in sec_xml['section']:
+    parsedXML = et.parse( "course/chapter/"+ sec +".xml")
+    for node in parsedXML.getroot():
+        name = node.attrib.get('url_name')
+        if pd.isna(name):
+            continue
+        else:
+            subsec_xml = subsec_xml.append(pd.Series([name], index=dfcols), ignore_index = True)
+##Creamos el diccionario de subsecciones
+dicsubsec = dict(zip(subsec_xml['subsection'], range(1, len(subsec_xml['subsection'])+1)))
+
+
 ##Lee el csv
 datos = pd.read_csv('engagement.csv', sep=';',  error_bad_lines=False)
 
-#Funcion para obtener unicos datos de una lista
-def unique(list1):
-    x = np.array(list1)
-    return np.unique(x)
 
 ##Identifica Estudiante
 
@@ -49,7 +80,7 @@ estudiantes = estudiantesn
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
 #print(estudiantes)
-datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section', 'datetime', 'unit']]
+datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section','subsection', 'datetime', 'unit']]
 
 
 #Asigna una sola variable por tipo de contenido:
@@ -60,7 +91,7 @@ datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['edx.forum.response
 ## Temporalmente para Quiz
 datosPrimerNivel['unit'].fillna('1', inplace=True)
 datosPrimerNivel['unit'] = datosPrimerNivel['unit'].replace(['Null', 'NaN'], '1')
-## Temporalmente NA para la unidad de los foros
+## Temporalmente  para la unidad de los foros
 
 ## Crea un array de dataframes, un dataframe por estudiante
 data_collection = {}
@@ -98,7 +129,7 @@ def Insert_row(row_number, df, row_value):
 #####################################
 dt = datosPrimerNivel
 #[['name','session', 'username']]
-print(dt[['name','unit', 'session']])
+#print(dt[['name','unit', 'session']])
 df_ss = pd.DataFrame()
 for est in range(len(estudiantes)):
     nuevo= pd.DataFrame(datosPrimerNivel[datosPrimerNivel['username'] == estudiantes[est]])
@@ -135,7 +166,7 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1], 'NA']
+        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['subsection'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1], '']
         data_collection[est] = Insert_row(fl, data_collection[est], row_signout)
 
     numeroFilas = data_collection[est].count()
@@ -147,29 +178,35 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['datetime'].iloc[fl], 'NA']
+        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['subsection'].iloc[fl], data_collection[est]['datetime'].iloc[fl], '']
         data_collection[est] = Insert_row(fl, data_collection[est], row_signin)
     
     numeroFilas = data_collection[est].count()
     
     ## Agrega fila signin y signou al inicio y final de cada df del estudiante
-    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['datetime'].iloc[0], 'NA']
+    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['subsection'].iloc[0], data_collection[est]['datetime'].iloc[0], '']
     data_collection[est]= Insert_row(0, data_collection[est], row_signin)
     
-    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session], 'NA']
+    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['subsection'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session], '']
     numeroFilas = data_collection[est].count()
     data_collection[est]= Insert_row(numeroFilas.session, data_collection[est], row_signout)
 
     numeroFilas = data_collection[est].count()
 
 for est in range(len(estudiantes)):
+    #valsecs = pd.DataFrame().append(dicsec)
+    #secci = data_collection[est]['section'].tolist()
+    #valsecs = valsecs[secci].values[0]
+    #valsubsecs = dicsubsec[x] for x in data_collection[est]['subsection'
+    #data_collection[est]['name'] = data_collection[est]['name'].astype(str)+""+valsecs+""+data_collection[est]['unit']
     data_collection[est]['name'] = data_collection[est]['name'].astype(str)+""+data_collection[est]['unit']
 
 dftemp = data_collection[5]
 #print(dftemp)
-#exportarCsv(dftemp, 'ejemsiso', rutamodulos)
+exportarCsv(dftemp, 'ejemsiso', rutamodulos)
 #print(dftemp[dftemp['session' == 'ccf96478cd58d9f2c650617acbe6a6af']])
-
+for col in dftemp.columns: 
+        print(col)
 for est in range(len(estudiantes)):
     numeroFilas = data_collection[est].count()
     ##Se comienza a construir edges y nodes
@@ -185,10 +222,6 @@ for est in range(len(estudiantes)):
     datosA = datosA.append(grafo[est], ignore_index=True)
 
 #print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
-datosA['Source'] = datosA['Source'].replace(['SigninNA'], 'Signin')
-datosA['Source'] = datosA['Source'].replace(['SignoutNA'], 'Signout')
-datosA['Target'] = datosA['Target'].replace(['SigninNA'], 'Signin')
-datosA['Target'] = datosA['Target'].replace(['SignoutNA'], 'Signout')
 exportarCsv(datosA, 'antesdegrafo', rutamodulos)
 
 ## Se generan dataframes tipo1 por seccion
