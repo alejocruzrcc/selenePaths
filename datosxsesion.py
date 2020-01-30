@@ -70,6 +70,7 @@ datos['date']= datos['date'].astype(str) + " "
 datos['datetime']= datos[colstiempo].sum(1)
 datos.drop(colstiempo, 1)
 datos = datos.sort_values('datetime')
+datos['type']= datos['name']
 
 ## filtrar datos sin nav_content, nav_content_next y nav_content_prev, ademas actualiza estudiantes
 
@@ -80,7 +81,7 @@ estudiantes = estudiantesn
 ##Selecciona solamente las columnas username y name(tipo de contenido)
 
 #print(estudiantes)
-datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section','subsection', 'datetime', 'unit']]
+datosPrimerNivel = datosPrimerNivel[['username', 'name', 'type', 'session', 'section','subsection', 'datetime', 'unit']]
 
 
 #Asigna una sola variable por tipo de contenido:
@@ -88,6 +89,7 @@ datosPrimerNivel = datosPrimerNivel[['username', 'name', 'session', 'section','s
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['play_video'], 'Video')
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['problem_check','problem_graded'], 'Quiz')
 datosPrimerNivel['name'] = datosPrimerNivel['name'].replace(['edx.forum.response.created','edx.forum.thread.created','edx.forum.comment.created'], 'Forum')
+datosPrimerNivel['type']= datosPrimerNivel['name']
 ## Temporalmente para Quiz
 datosPrimerNivel['unit'].fillna('1', inplace=True)
 datosPrimerNivel['unit'] = datosPrimerNivel['unit'].replace(['Null', 'NaN'], '1')
@@ -166,7 +168,7 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], data_collection[est]['subsection'].iloc[fl-1], data_collection[est]['datetime'].iloc[fl-1], '']
+        row_signout = [estudiantes[est], 'Signout', 'Signout', data_collection[est]['session'].iloc[fl-1], data_collection[est]['section'].iloc[fl-1], '', data_collection[est]['datetime'].iloc[fl-1], '']
         data_collection[est] = Insert_row(fl, data_collection[est], row_signout)
 
     numeroFilas = data_collection[est].count()
@@ -178,16 +180,16 @@ for est in range(len(estudiantes)):
     for f in range(0, len(filasainsertar)):
         fi = filasainsertar[f]
         fl = f+ fi
-        row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], data_collection[est]['subsection'].iloc[fl], data_collection[est]['datetime'].iloc[fl], '']
+        row_signin = [estudiantes[est], 'Signin', 'Signin', data_collection[est]['session'].iloc[fl], data_collection[est]['section'].iloc[fl], '', data_collection[est]['datetime'].iloc[fl], '']
         data_collection[est] = Insert_row(fl, data_collection[est], row_signin)
     
     numeroFilas = data_collection[est].count()
     
     ## Agrega fila signin y signou al inicio y final de cada df del estudiante
-    row_signin = [estudiantes[est], 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], data_collection[est]['subsection'].iloc[0], data_collection[est]['datetime'].iloc[0], '']
+    row_signin = [estudiantes[est], 'Signin', 'Signin', data_collection[est]['session'].iloc[0], data_collection[est]['section'].iloc[0], '', data_collection[est]['datetime'].iloc[0], '']
     data_collection[est]= Insert_row(0, data_collection[est], row_signin)
     
-    row_signout = [estudiantes[est], 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], data_collection[est]['subsection'].iloc[numeroFilas.session], data_collection[est]['datetime'].iloc[numeroFilas.session], '']
+    row_signout = [estudiantes[est], 'Signout', 'Signout', data_collection[est]['session'].iloc[numeroFilas.session], data_collection[est]['section'].iloc[numeroFilas.session], '', data_collection[est]['datetime'].iloc[numeroFilas.session], '']
     numeroFilas = data_collection[est].count()
     data_collection[est]= Insert_row(numeroFilas.session, data_collection[est], row_signout)
 
@@ -199,7 +201,7 @@ for est in range(len(estudiantes)):
     #valsecs = valsecs[secci].values[0]
     #valsubsecs = dicsubsec[x] for x in data_collection[est]['subsection'
     #data_collection[est]['name'] = data_collection[est]['name'].astype(str)+""+valsecs+""+data_collection[est]['unit']
-    data_collection[est]['name'] = data_collection[est]['name'].astype(str)+""+data_collection[est]['unit']
+    data_collection[est]['name'] = data_collection[est]['name'].astype(str)+"_"+data_collection[est]['subsection'].astype(str)+"_"+data_collection[est]['unit']
 
 dftemp = data_collection[5]
 #print(dftemp)
@@ -222,6 +224,10 @@ for est in range(len(estudiantes)):
     datosA = datosA.append(grafo[est], ignore_index=True)
 
 #print(datosA[['Source', 'Target', 'Session']][datosA['Student'] == 'e173'] )
+datosA['Source'] = datosA['Source'].replace(['Signin__'], 'Signin')
+datosA['Source'] = datosA['Source'].replace(['Signout__'], 'Signout')
+datosA['Target'] = datosA['Target'].replace(['Signin__'], 'Signin')
+datosA['Target'] = datosA['Target'].replace(['Signout__'], 'Signout')
 exportarCsv(datosA, 'antesdegrafo', rutamodulos)
 
 ## Se generan dataframes tipo1 por seccion
@@ -290,7 +296,7 @@ datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','For
 
 datosNodos = pd.DataFrame(index =[], columns = ['id', 'label'])
 datosNodos['id'] = np.unique(datosCompleto[['Source', 'Target']].values)
-datosNodos['label'] = np.unique(datosCompleto[['Source', 'Target']].values)
+datosNodos['label'] = [x.split('_',2)[0] for x in datosNodos['id']]
 exportarCsv(datosNodos, 'nodos', rutamodulos)
 
 datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget', 'Student', 'Session', 'Datetime', 'Week']]
