@@ -279,9 +279,20 @@ for sa in range(len(sesAmodulos)):
 '''datosCompleto['Source'] = datosCompleto['Source'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])
 datosCompleto['Target'] = datosCompleto['Target'].replace(['Signin','Video','Forum','Quiz', 'Signout', 'Other'],[0, 1, 2, 3, 4, 5])'''
 
-datosNodos = pd.DataFrame(index =[], columns = ['id', 'label'])
+datosNodos = pd.DataFrame(index =[], columns = ['id', 'label', 'group'])
 datosNodos['id'] = np.unique(datosCompleto[['Source', 'Target']].values)
-datosNodos['label'] = [x.split('_',2)[0] for x in datosNodos['id']]
+datosNodos['label'] = [x.split('_')[0] for x in datosNodos['id']]
+modus = []
+for x in datosNodos['id']:
+   array_id = x.split('_')
+   if len(array_id)>1:
+       c = array_id[1]
+   else:
+       c = array_id[0]
+   modus = np.append(modus, c)
+datosNodos['group'] = modus
+ 
+
 exportarCsv(datosNodos, 'nodosT', rutamodulos)
 
 datosCompleto = datosCompleto[['Source', 'Target','Step', 'SectionSource', 'SectionTarget', 'Student', 'Session', 'Datetime']]
